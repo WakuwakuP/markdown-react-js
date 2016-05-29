@@ -1,32 +1,40 @@
-var webpack = require('webpack');
+var webpack = require('webpack')
 
 module.exports = {
   entry: './src/index',
+
+  output: {
+    filename: 'lib/index.js',
+    library: 'MarkdownReact',
+    libraryTarget: 'umd'
+  },
+
+  externals: {
+    react: 'react'
+  },
+
   module: {
     loaders: [
-      { test: /\.json$/, loader: 'json' },
-      { test: /\.js$/, loader: 'babel', exclude: /node_modules/ }
+      {
+        test: /\.json$/,
+        loader: 'json'
+      }, {
+        test: /\.js$/,
+        exclude: /node_modules/,
+        loader: 'babel'
+      }
     ]
   },
-  output: {
-    filename: 'dist/markdown-react.min.js',
-    libraryTarget: 'umd',
-    library: 'MarkdownReact'
+
+  node: {
+    Buffer: false
   },
+
   plugins: [
     new webpack.optimize.OccurenceOrderPlugin(),
     new webpack.DefinePlugin({
-      'process.env': {
-        'NODE_ENV': JSON.stringify('production')
-      }
-    }),
-    new webpack.optimize.UglifyJsPlugin({
-      compressor: {
-        warnings: false
-      }
+      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV)
     })
-  ],
-  externals: {
-    react: 'React'
-  }
-};
+  ]
+
+}

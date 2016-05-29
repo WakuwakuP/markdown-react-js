@@ -1,113 +1,114 @@
-'use strict';
+'use strict'
 
-import markdown from 'markdown-it';
-import React, { PropTypes, Component } from 'react';
-import isPlainObject from 'lodash/lang/isPlainObject';
-import assign from 'lodash/object/assign';
-import reduce from 'lodash/collection/reduce';
-import zipObject from 'lodash/array/zipObject';
-import sortBy from 'lodash/collection/sortBy';
-import compact from 'lodash/array/compact';
-import camelCase from 'lodash/string/camelCase';
-import isString from 'lodash/lang/isString';
+import markdown from 'markdown-it'
+import React, { PropTypes } from 'react'
+import isPlainObject from 'lodash/isPlainObject'
+import assign from 'lodash/assign'
+import reduce from 'lodash/reduce'
+import zipObject from 'lodash/zipObject'
+import sortBy from 'lodash/sortBy'
+import compact from 'lodash/compact'
+import camelCase from 'lodash/camelCase'
+import isString from 'lodash/isString'
+import fromPairs from 'lodash/fromPairs'
 
 
 const DEFAULT_TAGS = {
   'html': 'span'
-};
+}
 
 const DEFAULT_RULES = {
   image(token, attrs, children) {
     if (children.length) {
-      attrs = assign({}, attrs, { alt: children[0] });
+      attrs = assign({}, attrs, { alt: children[0] })
     }
-    return [[token.tag, attrs]];
+    return [[token.tag, attrs]]
   },
 
   codeInline(token, attrs) {
-    return [compact([token.tag, attrs, token.content])];
+    return [compact([token.tag, attrs, token.content])]
   },
 
   codeBlock(token, attrs) {
-    return [['pre', compact([token.tag, attrs, token.content])]];
+    return [['pre', compact([token.tag, attrs, token.content])]]
   },
 
   fence(token, attrs) {
     if (token.info) {
-      const langName = token.info.trim().split(/\s+/g)[0];
-      attrs = assign({}, attrs, { 'data-language': langName });
+      const langName = token.info.trim().split(/\s+/g)[0]
+      attrs = assign({}, attrs, { 'data-language': langName })
     }
 
-    return [['pre', compact([token.tag, attrs, token.content])]];
+    return [['pre', compact([token.tag, attrs, token.content])]]
   },
 
   hardbreak() {
-    return [['br']];
+    return [['br']]
   },
 
   softbreak(token, attrs, children, options) {
-    return options.breaks ? [['br']] : '\n';
+    return options.breaks ? [['br']] : '\n'
   },
 
   text(token) {
-    return token.content;
+    return token.content
   },
 
   htmlBlock(token) {
-    return token.content;
+    return token.content
   },
 
   htmlInline(token) {
-    return token.content;
+    return token.content
   },
 
   inline(token, attrs, children) {
-    return children;
+    return children
   },
 
   default(token, attrs, children, options, getNext) {
     if (token.nesting === 1 && token.hidden) {
-      return getNext();
+      return getNext()
     }
     /* plugin-related */
     if (!token.tag) {
-      return token.content;
+      return token.content
     }
     if (token.info) {
-      attrs = assign({}, attrs, { 'data-info': token.info.trim() });
+      attrs = assign({}, attrs, { 'data-info': token.info.trim() })
     }
     /* plugin-related */
-    return [compact([token.tag, attrs].concat((token.nesting === 1) && getNext()))];
+    return [compact([token.tag, attrs].concat((token.nesting === 1) && getNext()))]
   }
-};
+}
 
 function convertTree(tokens, convertRules, options) {
   function convertBranch(tkns, nested) {
-    let branch = [];
+    let branch = []
 
     if (!nested) {
-      branch.push('html');
+      branch.push('html')
     }
 
     function getNext() {
-      return convertBranch(tkns, true);
+      return convertBranch(tkns, true)
     }
 
-    let token = tkns.shift();
+    let token = tkns.shift()
     while (token && token.nesting !== -1) {
-      const attrs = token.attrs && zipObject(sortBy(token.attrs, 0));
-      const children = token.children && convertBranch(token.children.slice(), true);
-      const rule = convertRules[camelCase(token.type)] || convertRules.default;
+      const attrs = token.attrs && fromPairs(sortBy(token.attrs, 0))
+      const children = token.children && convertBranch(token.children.slice(), true)
+      const rule = convertRules[camelCase(token.type)] || convertRules.default
 
       branch = branch.concat(
         rule(token, attrs, children, options, getNext)
-      );
-      token = tkns.shift();
+      )
+      token = tkns.shift()
     }
-    return branch;
+    return branch
   }
 
-  return convertBranch(tokens, false);
+  return convertBranch(tokens, false)
 }
 
 function mdReactFactory(options={}) {
@@ -121,68 +122,74 @@ function mdReactFactory(options={}) {
     plugins = [],
     onGenerateKey = (tag, index) => `mdrct-${tag}-${index}`,
     ...rootElementProps
-  } = options;
+  } = options
 
   let md = markdown(markdownOptions || presetName)
     .enable(enableRules)
-    .disable(disableRules);
+    .disable(disableRules)
 
-  const convertRules = assign({}, DEFAULT_RULES, options.convertRules);
+  const convertRules = assign({}, DEFAULT_RULES, options.convertRules)
 
-  md = reduce(plugins, (m, plugin) =>
-    plugin.plugin ?
-    m.use(plugin.plugin, ...plugin.args) :
-    m.use(plugin),
-    md
-  );
+  md = reduce(plugins, (m, plugin) => (
+    plugin.plugin
+      ? m.use(plugin.plugin, ...plugin.args)
+      : m.use(plugin)
+    ), md
+  )
 
   function renderChildren(tag) {
-    return (tag !== 'img') && (tag !== 'hr');
+    return (tag !== 'img') && (tag !== 'hr')
   }
 
   function iterateTree(tree, level=0, index=0) {
-    let tag = tree.shift();
-    const key = onGenerateKey(tag, index);
+    let tag = tree.shift()
+    const key = onGenerateKey(tag, index)
 
-    let props = (tree.length && isPlainObject(tree[0])) ?
-                  assign(tree.shift(), { key }) :
-                  { key };
+    let props = (tree.length && isPlainObject(tree[0]))
+      ? assign(tree.shift(), { key })
+      : { key }
 
     if (level === 0) {
-      props = { ...props, ...rootElementProps };
+      props = { ...props, ...rootElementProps }
     }
 
     const children = tree.map(
-      (branch, idx) => Array.isArray(branch) ?
-        iterateTree(branch, level + 1, idx) :
-        branch
-    );
+      (branch, idx) =>
+        Array.isArray(branch)
+          ? iterateTree(branch, level + 1, idx)
+          : branch
+    )
 
-    tag = tags[tag] || tag;
+    tag = tags[tag] || tag
 
     if (isString(props.style)) {
       props.style = zipObject(
         props.style.split(';')
-          .map(prop => prop.split(':'))
-          .map(keyVal => [camelCase(keyVal[0].trim()), keyVal[1].trim()])
-      );
+        .map(prop => prop.split(':'))
+        .map(keyVal => [camelCase(keyVal[0].trim()), keyVal[1].trim()])
+      )
     }
 
-    return (
-      (typeof onIterate === 'function') && onIterate(tag, props, children, level)
-      ) || React.createElement(tag, props, renderChildren(tag) ? children : undefined);
+
+    if ((typeof onIterate === 'function')) {
+      let element = onIterate(tag, props, children, level)
+      if (element) {
+        return element
+      }
+    }
+    return React.createElement(tag, props, renderChildren(tag) ? children : undefined)
   }
 
   return function(text) {
-    const tree = convertTree(md.parse(text, {}), convertRules, md.options);
-    return iterateTree(tree);
-  };
+    const tree = convertTree(md.parse(text, {}), convertRules, md.options)
+    return iterateTree(tree)
+  }
 }
 
 const MDReactComponent = props => {
-  const { text, ...propsWithoutText } = props;
-  return mdReactFactory(propsWithoutText)(text);
-};
+  const { text, ...propsWithoutText } = props
+  return mdReactFactory(propsWithoutText)(text)
+}
 
 MDReactComponent.propTypes = {
   text: PropTypes.string.isRequired,
@@ -196,7 +203,7 @@ MDReactComponent.propTypes = {
   convertRules: PropTypes.object,
   plugins: PropTypes.array,
   className: PropTypes.string
-};
+}
 
-export default MDReactComponent;
-export { mdReactFactory as mdReact };
+export default MDReactComponent
+export { mdReactFactory as mdReact }
