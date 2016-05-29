@@ -136,6 +136,10 @@ function mdReactFactory(options={}) {
     md
   );
 
+  function renderChildren(tag) {
+    return (tag !== 'img') && (tag !== 'hr');
+  }
+
   function iterateTree(tree, level=0, index=0) {
     let tag = tree.shift();
     const key = onGenerateKey(tag, index);
@@ -164,9 +168,9 @@ function mdReactFactory(options={}) {
       );
     }
 
-    return (typeof onIterate === 'function') ?
-      onIterate(tag, props, children, level) :
-      React.createElement(tag, props, children);
+    return (
+      (typeof onIterate === 'function') && onIterate(tag, props, children, level)
+      ) || React.createElement(tag, props, renderChildren(tag) ? children : undefined);
   }
 
   return function(text) {
@@ -175,26 +179,24 @@ function mdReactFactory(options={}) {
   };
 }
 
-class MDReactComponent extends Component {
-  static propTypes = {
-    text: PropTypes.string.isRequired,
-    onIterate: PropTypes.func,
-    onGenerateKey: PropTypes.func,
-    tags: PropTypes.object,
-    presetName: PropTypes.string,
-    markdownOptions: PropTypes.object,
-    enableRules: PropTypes.array,
-    disableRules: PropTypes.array,
-    convertRules: PropTypes.object,
-    plugins: PropTypes.array,
-    className: PropTypes.string
-  }
+const MDReactComponent = props => {
+  const { text, ...propsWithoutText } = props;
+  return mdReactFactory(propsWithoutText)(text);
+};
 
-  render() {
-    const { text, ...props } = this.props;
-    return mdReactFactory(props)(text);
-  }
-}
+MDReactComponent.propTypes = {
+  text: PropTypes.string.isRequired,
+  onIterate: PropTypes.func,
+  onGenerateKey: PropTypes.func,
+  tags: PropTypes.object,
+  presetName: PropTypes.string,
+  markdownOptions: PropTypes.object,
+  enableRules: PropTypes.array,
+  disableRules: PropTypes.array,
+  convertRules: PropTypes.object,
+  plugins: PropTypes.array,
+  className: PropTypes.string
+};
 
 export default MDReactComponent;
 export { mdReactFactory as mdReact };
