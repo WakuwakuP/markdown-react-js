@@ -138,7 +138,7 @@ function mdReactFactory(options={}) {
   )
 
   function renderChildren(tag) {
-    return (tag !== 'img') && (tag !== 'hr')
+    return ['img', 'hr', 'br'].indexOf(tag) < 0
   }
 
   function iterateTree(tree, level=0, index=0) {
