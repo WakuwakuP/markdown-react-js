@@ -40,7 +40,7 @@
     "webpack": "^1.13.1"
   },
   "peerDependencies": {
-    "react": "^0.14.0 || ^15.0.0"
+    "react": "^0.14.0 || ^15.0.0 || ^16.0.0"
   },
   "scripts": {
     "test": "NODE_ENV=test mocha --compilers js:babel-register --reporter spec --timeout 3000 --ui bdd",
