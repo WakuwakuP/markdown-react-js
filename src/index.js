@@ -2,6 +2,7 @@
 
 import markdown from 'markdown-it'
 import React, { PropTypes } from 'react'
+import PropTypes from 'prop-types';
 import isPlainObject from 'lodash/isPlainObject'
 import assign from 'lodash/assign'
 import reduce from 'lodash/reduce'
